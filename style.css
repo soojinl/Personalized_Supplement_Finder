@@ -71,6 +71,38 @@ input {
   font-size: 14px;
 }
 
+.drop-zone {
+  margin-top: 10px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--muted);
+  background: #fbfdff;
+  outline: none;
+}
+
+.drop-zone.active,
+.drop-zone:focus {
+  border-color: var(--primary);
+  background: #f1f7ff;
+}
+
+.preview-list {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preview-item {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef3fb;
+  color: #1f2a3e;
+  font-size: 13px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -92,6 +124,12 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.detected {
+  margin-bottom: 10px;
+  color: #25314b;
+  font-weight: 600;
 }
 
 .chip {
