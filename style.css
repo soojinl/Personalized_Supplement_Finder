@@ -1,12 +1,36 @@
+@font-face {
+  font-family: "GmarketSansLight";
+  src: url("https://cdn.jsdelivr.net/gh/woffz/a1@main/Gmarket/GmarketSansLight.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GmarketSansMedium";
+  src: url("https://cdn.jsdelivr.net/gh/woffz/a1@main/Gmarket/GmarketSansMedium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GmarketSansBold";
+  src: url("https://cdn.jsdelivr.net/gh/woffz/a1@main/Gmarket/GmarketSansBold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --bg: #f2f5f9;
+  --bg: #edf6f1;
   --card: #ffffff;
-  --text: #172033;
-  --muted: #5d6677;
-  --primary: #0b6bcb;
-  --border: #d9e0eb;
-  --ok: #0f8a3f;
-  --warn: #b26b00;
+  --text: #123323;
+  --muted: #4c6b5b;
+  --primary: #1f8a5b;
+  --border: #cfe4d7;
+  --ok: #1f7a4b;
+  --warn: #a06a00;
   --danger: #b42318;
 }
 
@@ -16,9 +40,20 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #dfefff 0%, var(--bg) 45%);
-  font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  background: radial-gradient(circle at top, #d9f2e6 0%, var(--bg) 48%);
+  font-family: "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   color: var(--text);
+}
+
+.hero h1 {
+  font-family: "GmarketSansBold", "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+}
+
+.hero p,
+.hint,
+.disclaimer,
+.guidelines {
+  font-family: "GmarketSansLight", "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
 }
 
 .app {
@@ -51,7 +86,7 @@ body {
 
 label {
   display: block;
-  font-weight: 600;
+  font-weight: 500;
   margin-top: 10px;
 }
 
@@ -114,6 +149,7 @@ button {
   border: none;
   background: var(--primary);
   color: #fff;
+  font-family: "GmarketSansBold", "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   font-weight: 700;
   border-radius: 10px;
   padding: 12px 16px;
@@ -195,6 +231,12 @@ td {
 
 th {
   background: #f8fbff;
+  font-family: "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  font-weight: 500;
+}
+
+td {
+  font-family: "GmarketSansLight", "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
 }
 
 .disclaimer {
