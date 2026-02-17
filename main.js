@@ -260,7 +260,8 @@ const state = {
 };
 
 const KOREA_NUTRI_API = {
-  baseUrl: "/api/korea-nutri",
+  baseUrl: "https://api.data.go.kr/openapi/tn_pubr_public_nutri_info_api",
+  serviceKey: "4aQljg1aUQMDzPovBAVX0hworxW%2FALiyyXdJfG1JOswL%2B8Wq6x7nhjSSEDLgDB7SrgnYYWrf%2BBqbGtg7dFKooQ%3D%3D",
   type: "json",
   pageNo: 1,
   numOfRows: 50
@@ -418,6 +419,7 @@ function extractNutrientsFromApiItem(item) {
 
 async function fetchKoreaNutriByName(name) {
   const params = new URLSearchParams();
+  params.set("serviceKey", KOREA_NUTRI_API.serviceKey);
   params.set("type", KOREA_NUTRI_API.type);
   params.set("pageNo", String(KOREA_NUTRI_API.pageNo));
   params.set("numOfRows", String(KOREA_NUTRI_API.numOfRows));
