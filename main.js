@@ -259,6 +259,14 @@ const state = {
   detectedProducts: []
 };
 
+const KOREA_NUTRI_API = {
+  baseUrl: "https://api.data.go.kr/openapi/tn_pubr_public_nutri_info_api",
+  serviceKey: "4aQljg1aUQMDzPovBAVX0hworxW%2FALiyyXdJfG1JOswL%2B8Wq6x7nhjSSEDLgDB7SrgnYYWrf%2BBqbGtg7dFKooQ%3D%3D",
+  type: "json",
+  pageNo: 1,
+  numOfRows: 50
+};
+
 let dsldNameMap = new Map();
 let dsldKeyList = [];
 let dsldLoaded = false;
@@ -375,6 +383,89 @@ function parseNamedProducts(rawText) {
     }
   });
   return { total, matchedProducts };
+}
+
+function parseNumber(value) {
+  if (value === null || value === undefined) return null;
+  const num = Number(String(value).replace(/,/g, "").trim());
+  return Number.isFinite(num) ? num : null;
+}
+
+function pickFirstValue(item, keys) {
+  for (const key of keys) {
+    if (item[key] !== undefined && item[key] !== null && item[key] !== "") return item[key];
+  }
+  return null;
+}
+
+function extractNutrientsFromApiItem(item) {
+  const nutrients = {};
+  const mappings = [
+    { key: "vitamin_d", fields: ["vitd", "vitD", "vitaminD", "비타민D"] , unit: "mcg" },
+    { key: "vitamin_c", fields: ["vitc", "vitC", "vitaminC", "비타민C"] , unit: "mg" },
+    { key: "vitamin_b12", fields: ["vitb12", "vitB12", "vitaminB12", "비타민B12"] , unit: "mcg" },
+    { key: "calcium", fields: ["ca", "calcium", "칼슘"] , unit: "mg" },
+    { key: "iron", fields: ["fe", "iron", "철"] , unit: "mg" },
+    { key: "zinc", fields: ["zn", "zinc", "아연"] , unit: "mg" },
+    { key: "magnesium", fields: ["mg", "magnesium", "마그네슘"] , unit: "mg" }
+  ];
+  mappings.forEach((mapping) => {
+    const value = parseNumber(pickFirstValue(item, mapping.fields));
+    if (value === null) return;
+    nutrients[mapping.key] = { amount: value, unit: mapping.unit };
+  });
+  return nutrients;
+}
+
+async function fetchKoreaNutriByName(name) {
+  const params = new URLSearchParams();
+  params.set("serviceKey", KOREA_NUTRI_API.serviceKey);
+  params.set("type", KOREA_NUTRI_API.type);
+  params.set("pageNo", String(KOREA_NUTRI_API.pageNo));
+  params.set("numOfRows", String(KOREA_NUTRI_API.numOfRows));
+  params.set("foodNm", name);
+  params.set("bsshNm", name);
+  const url = `${KOREA_NUTRI_API.baseUrl}?${params.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  if (KOREA_NUTRI_API.type.toLowerCase() === "xml") {
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "application/xml");
+    const items = Array.from(xml.getElementsByTagName("item"));
+    return items.map((node) => {
+      const obj = {};
+      Array.from(node.children).forEach((child) => {
+        obj[child.tagName] = child.textContent;
+      });
+      return obj;
+    });
+  }
+  const data = await res.json();
+  const items =
+    data?.response?.body?.items?.item ||
+    data?.body?.items ||
+    data?.items ||
+    data?.data ||
+    [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function enrichFromKoreaApi(names, total, matchedProducts) {
+  const unique = [...new Set(names)].filter(Boolean);
+  for (const name of unique) {
+    try {
+      const items = await fetchKoreaNutriByName(name);
+      if (!items.length) continue;
+      const item = items[0];
+      const nutrients = extractNutrientsFromApiItem(item);
+      if (Object.keys(nutrients).length === 0) continue;
+      matchedProducts.push(item.foodNm || item.foodname || name);
+      Object.entries(nutrients).forEach(([k, info]) => addNutrient(total, k, info.amount, info.unit));
+    } catch (e) {
+      // ignore API failures
+    }
+  }
 }
 
 function parseHealthFromText(text) {
@@ -804,6 +895,12 @@ async function analyze() {
   const byName = parseNamedProducts(nameInput);
   let total = byName.total;
   state.detectedProducts = state.detectedProducts.concat(byName.matchedProducts);
+
+  const rawNames = nameInput
+    .split(/\n|,/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+  await enrichFromKoreaApi(rawNames, total, state.detectedProducts);
 
   setStatus("supplement-status", "영양제 이미지 OCR 분석 중...");
   for (const file of state.supplementFiles) {
