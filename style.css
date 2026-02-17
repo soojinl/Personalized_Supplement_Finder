@@ -121,9 +121,29 @@ button {
 }
 
 .summary {
+  display: grid;
+  gap: 8px;
+}
+
+.summary-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.guidelines {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.guidelines ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.guidelines li {
+  margin: 4px 0;
 }
 
 .detected {

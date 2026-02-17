@@ -1,12 +1,215 @@
-const NUTRIENT_RULES = {
-  vitamin_d: { label: "비타민D", unit: "mcg", rda: 15, ul: 100 },
-  omega3: { label: "오메가3(EPA+DHA)", unit: "mg", rda: 1000, ul: 3000 },
-  magnesium: { label: "마그네슘", unit: "mg", rda: 350, ul: 350 },
-  vitamin_c: { label: "비타민C", unit: "mg", rda: 100, ul: 2000 },
-  zinc: { label: "아연", unit: "mg", rda: 10, ul: 40 },
-  calcium: { label: "칼슘", unit: "mg", rda: 700, ul: 2500 },
-  iron: { label: "철", unit: "mg", rda: 10, ul: 45 },
-  vitamin_b12: { label: "비타민B12", unit: "mcg", rda: 2.4, ul: null }
+const NUTRIENT_META = {
+  vitamin_d: { label: "비타민D", unit: "mcg" },
+  omega3: { label: "오메가3(EPA+DHA)", unit: "mg" },
+  magnesium: { label: "마그네슘", unit: "mg" },
+  vitamin_c: { label: "비타민C", unit: "mg" },
+  zinc: { label: "아연", unit: "mg" },
+  calcium: { label: "칼슘", unit: "mg" },
+  iron: { label: "철", unit: "mg" },
+  vitamin_b12: { label: "비타민B12", unit: "mcg" }
+};
+
+const BASE_RULES = {
+  vitamin_d: { rda: 15, ul: 100 },
+  omega3: { rda: 1000, ul: 3000 },
+  magnesium: { rda: 350, ul: 350 },
+  vitamin_c: { rda: 100, ul: 2000 },
+  zinc: { rda: 10, ul: 40 },
+  calcium: { rda: 700, ul: 2500 },
+  iron: { rda: 10, ul: 45 },
+  vitamin_b12: { rda: 2.4, ul: null }
+};
+
+const KDRI_RULES = {
+  vitamin_d: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 5, ul: 30 },
+        { min: 3, max: 5, rda: 5, ul: 35 },
+        { min: 6, max: 8, rda: 5, ul: 40 },
+        { min: 9, max: 11, rda: 5, ul: 60 },
+        { min: 12, max: 18, rda: 10, ul: 100 },
+        { min: 19, max: 64, rda: 10, ul: 100 },
+        { min: 65, max: 74, rda: 15, ul: 100 },
+        { min: 75, max: 200, rda: 15, ul: 100 }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 5, ul: 30 },
+        { min: 3, max: 5, rda: 5, ul: 35 },
+        { min: 6, max: 8, rda: 5, ul: 40 },
+        { min: 9, max: 11, rda: 5, ul: 60 },
+        { min: 12, max: 18, rda: 10, ul: 100 },
+        { min: 19, max: 64, rda: 10, ul: 100 },
+        { min: 65, max: 74, rda: 15, ul: 100 },
+        { min: 75, max: 200, rda: 15, ul: 100 }
+      ]
+    }
+  },
+  vitamin_c: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 40, ul: 340 },
+        { min: 3, max: 5, rda: 45, ul: 510 },
+        { min: 6, max: 8, rda: 50, ul: 750 },
+        { min: 9, max: 11, rda: 70, ul: 1100 },
+        { min: 12, max: 14, rda: 90, ul: 1400 },
+        { min: 15, max: 18, rda: 100, ul: 1600 },
+        { min: 19, max: 200, rda: 100, ul: 2000 }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 40, ul: 340 },
+        { min: 3, max: 5, rda: 45, ul: 510 },
+        { min: 6, max: 8, rda: 50, ul: 750 },
+        { min: 9, max: 11, rda: 70, ul: 1100 },
+        { min: 12, max: 14, rda: 90, ul: 1400 },
+        { min: 15, max: 18, rda: 100, ul: 1600 },
+        { min: 19, max: 200, rda: 100, ul: 2000 }
+      ]
+    }
+  },
+  vitamin_b12: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 0.9, ul: null },
+        { min: 3, max: 5, rda: 1.1, ul: null },
+        { min: 6, max: 8, rda: 1.3, ul: null },
+        { min: 9, max: 11, rda: 1.7, ul: null },
+        { min: 12, max: 14, rda: 2.3, ul: null },
+        { min: 15, max: 18, rda: 2.4, ul: null },
+        { min: 19, max: 200, rda: 2.4, ul: null }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 0.9, ul: null },
+        { min: 3, max: 5, rda: 1.1, ul: null },
+        { min: 6, max: 8, rda: 1.3, ul: null },
+        { min: 9, max: 11, rda: 1.7, ul: null },
+        { min: 12, max: 14, rda: 2.3, ul: null },
+        { min: 15, max: 18, rda: 2.4, ul: null },
+        { min: 19, max: 200, rda: 2.4, ul: null }
+      ]
+    }
+  },
+  calcium: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 500, ul: 2500 },
+        { min: 3, max: 5, rda: 600, ul: 2500 },
+        { min: 6, max: 8, rda: 700, ul: 2500 },
+        { min: 9, max: 11, rda: 800, ul: 3000 },
+        { min: 12, max: 14, rda: 1000, ul: 3000 },
+        { min: 15, max: 18, rda: 900, ul: 3000 },
+        { min: 19, max: 29, rda: 800, ul: 2500 },
+        { min: 30, max: 49, rda: 800, ul: 2500 },
+        { min: 50, max: 64, rda: 750, ul: 2000 },
+        { min: 65, max: 74, rda: 700, ul: 2000 },
+        { min: 75, max: 200, rda: 700, ul: 2000 }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 500, ul: 2500 },
+        { min: 3, max: 5, rda: 600, ul: 2500 },
+        { min: 6, max: 8, rda: 700, ul: 2500 },
+        { min: 9, max: 11, rda: 800, ul: 3000 },
+        { min: 12, max: 14, rda: 900, ul: 3000 },
+        { min: 15, max: 18, rda: 800, ul: 3000 },
+        { min: 19, max: 29, rda: 700, ul: 2500 },
+        { min: 30, max: 49, rda: 700, ul: 2500 },
+        { min: 50, max: 64, rda: 800, ul: 2000 },
+        { min: 65, max: 74, rda: 800, ul: 2000 },
+        { min: 75, max: 200, rda: 800, ul: 2000 }
+      ]
+    }
+  },
+  iron: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 6, ul: 40 },
+        { min: 3, max: 5, rda: 7, ul: 40 },
+        { min: 6, max: 8, rda: 9, ul: 40 },
+        { min: 9, max: 11, rda: 11, ul: 40 },
+        { min: 12, max: 14, rda: 14, ul: 40 },
+        { min: 15, max: 18, rda: 14, ul: 45 },
+        { min: 19, max: 49, rda: 10, ul: 45 },
+        { min: 50, max: 64, rda: 10, ul: 45 },
+        { min: 65, max: 74, rda: 9, ul: 45 },
+        { min: 75, max: 200, rda: 9, ul: 45 }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 6, ul: 40 },
+        { min: 3, max: 5, rda: 7, ul: 40 },
+        { min: 6, max: 8, rda: 9, ul: 40 },
+        { min: 9, max: 11, rda: 10, ul: 40 },
+        { min: 12, max: 14, rda: 16, ul: 40 },
+        { min: 15, max: 18, rda: 14, ul: 45 },
+        { min: 19, max: 49, rda: 14, ul: 45 },
+        { min: 50, max: 64, rda: 8, ul: 45 },
+        { min: 65, max: 74, rda: 8, ul: 45 },
+        { min: 75, max: 200, rda: 7, ul: 45 }
+      ]
+    }
+  },
+  zinc: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 3, ul: 6 },
+        { min: 3, max: 5, rda: 4, ul: 9 },
+        { min: 6, max: 8, rda: 5, ul: 13 },
+        { min: 9, max: 11, rda: 8, ul: 19 },
+        { min: 12, max: 14, rda: 8, ul: 27 },
+        { min: 15, max: 18, rda: 10, ul: 33 },
+        { min: 19, max: 29, rda: 10, ul: 35 },
+        { min: 30, max: 49, rda: 10, ul: 35 },
+        { min: 50, max: 64, rda: 10, ul: 35 },
+        { min: 65, max: 74, rda: 9, ul: 35 },
+        { min: 75, max: 200, rda: 9, ul: 35 }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 3, ul: 6 },
+        { min: 3, max: 5, rda: 4, ul: 9 },
+        { min: 6, max: 8, rda: 5, ul: 13 },
+        { min: 9, max: 11, rda: 8, ul: 19 },
+        { min: 12, max: 14, rda: 8, ul: 27 },
+        { min: 15, max: 18, rda: 9, ul: 33 },
+        { min: 19, max: 49, rda: 8, ul: 35 },
+        { min: 50, max: 64, rda: 8, ul: 35 },
+        { min: 65, max: 74, rda: 7, ul: 35 },
+        { min: 75, max: 200, rda: 7, ul: 35 }
+      ]
+    }
+  },
+  magnesium: {
+    source: "KDRI 2020",
+    bySex: {
+      male: [
+        { min: 1, max: 2, rda: 70, ul: 60 },
+        { min: 3, max: 5, rda: 110, ul: 90 },
+        { min: 6, max: 8, rda: 150, ul: 130 },
+        { min: 9, max: 11, rda: 220, ul: 190 },
+        { min: 12, max: 14, rda: 320, ul: 270 },
+        { min: 15, max: 18, rda: 410, ul: 350 },
+        { min: 19, max: 29, rda: 360, ul: 350 },
+        { min: 30, max: 49, rda: 370, ul: 350 },
+        { min: 50, max: 64, rda: 370, ul: 350 },
+        { min: 65, max: 200, rda: 370, ul: 350 }
+      ],
+      female: [
+        { min: 1, max: 2, rda: 70, ul: 60 },
+        { min: 3, max: 5, rda: 110, ul: 90 },
+        { min: 6, max: 8, rda: 150, ul: 130 },
+        { min: 9, max: 11, rda: 220, ul: 190 },
+        { min: 12, max: 14, rda: 290, ul: 270 },
+        { min: 15, max: 18, rda: 340, ul: 350 },
+        { min: 19, max: 29, rda: 280, ul: 350 },
+        { min: 30, max: 49, rda: 280, ul: 350 },
+        { min: 50, max: 200, rda: 280, ul: 350 }
+      ]
+    }
+  }
 };
 
 const NUTRIENT_ALIASES = {
@@ -61,7 +264,7 @@ function round(value) {
 }
 
 function normalizeAmount(key, amount, unit) {
-  const target = NUTRIENT_RULES[key].unit;
+  const target = NUTRIENT_META[key].unit;
   const normalizedUnit = (unit || "").toLowerCase().replace("μ", "u");
   if (normalizedUnit === target) return amount;
   if (normalizedUnit === "ug") return target === "mcg" ? amount : amount / 1000;
@@ -72,7 +275,7 @@ function normalizeAmount(key, amount, unit) {
 }
 
 function addNutrient(total, key, amount, unit) {
-  if (!NUTRIENT_RULES[key]) return;
+  if (!NUTRIENT_META[key]) return;
   total[key] = (total[key] || 0) + normalizeAmount(key, amount, unit);
 }
 
@@ -146,8 +349,54 @@ async function recognizeImageText(file) {
   return result?.data?.text || "";
 }
 
-function evaluateAction(key, intake, labs) {
-  const rule = NUTRIENT_RULES[key];
+function normalizeText(value) {
+  return (value || "").trim().toLowerCase();
+}
+
+function isKorean(nationality) {
+  return ["대한민국", "한국", "korea", "republic of korea", "south korea"].some((token) => nationality.includes(token));
+}
+
+function isAmerican(nationality) {
+  return ["미국", "usa", "united states", "america", "u.s."].some((token) => nationality.includes(token));
+}
+
+function pickByAge(ranges, age) {
+  if (age === null || !Number.isFinite(age)) return null;
+  return ranges.find((range) => age >= range.min && age <= range.max) || null;
+}
+
+function getReference(person) {
+  const nationality = normalizeText(person?.nationality);
+  if (!nationality || isKorean(nationality)) return "KDRI 2020";
+  return "BASE";
+}
+
+function getRuleForPerson(key, person) {
+  const base = BASE_RULES[key];
+  const meta = NUTRIENT_META[key];
+  const gender = person?.gender;
+  const age = person?.age ?? null;
+  const reference = getReference(person);
+
+  if (reference === "KDRI 2020" && KDRI_RULES[key] && (gender === "male" || gender === "female")) {
+    const ranges = KDRI_RULES[key].bySex[gender];
+    const match = pickByAge(ranges, age);
+    if (match) {
+      return {
+        label: meta.label,
+        unit: meta.unit,
+        rda: match.rda,
+        ul: match.ul,
+        source: "KDRI 2020"
+      };
+    }
+  }
+
+  return { label: meta.label, unit: meta.unit, rda: base.rda, ul: base.ul, source: "BASE" };
+}
+
+function evaluateAction(key, intake, labs, person, rule) {
   const reasons = [];
   let status = "ok";
   let action = "유지";
@@ -165,6 +414,10 @@ function evaluateAction(key, intake, labs) {
   if (key === "omega3" && labs.ldl !== null && labs.ldl >= 160) reasons.push("LDL 높음(>=160mg/dL), 오메가3 보강 후보");
   if (key === "magnesium" && labs.hba1c !== null && labs.hba1c >= 5.7 && intake < rule.rda) reasons.push("HbA1c>=5.7, 마그네슘 보강 후보");
   if (key === "iron" && labs.ferritin !== null && labs.ferritin < 30 && intake < rule.rda) reasons.push("페리틴 낮음(<30ng/mL), 철 보강 후보");
+  if (rule.source === "BASE" && person?.age !== null) reasons.push("연령대에 따라 권장량이 달라질 수 있어 개별 기준 확인 필요");
+  if (person?.gender === "female" && key === "iron") reasons.push("성별에 따라 철 권장량이 달라질 수 있어 개별 기준 확인 필요");
+  const nationality = normalizeText(person?.nationality);
+  if (nationality && !isKorean(nationality)) reasons.push("국가별 권장량 기준 차이가 있을 수 있음");
   if (reasons.length === 0) reasons.push("권장 범위 내 섭취");
   return { status, action, reasons: reasons.join("; ") };
 }
@@ -202,28 +455,64 @@ function bindDropZone(zoneId, key, previewId) {
   });
 }
 
-function fillHealthInputs(labs) {
-  if (labs.vitaminD !== null) document.getElementById("lab-vitamin-d").value = labs.vitaminD;
-  if (labs.ldl !== null) document.getElementById("lab-ldl").value = labs.ldl;
-  if (labs.hba1c !== null) document.getElementById("lab-hba1c").value = labs.hba1c;
-  if (labs.ferritin !== null) document.getElementById("lab-ferritin").value = labs.ferritin;
+function normalizeLabValue(value) {
+  if (value === null || value === undefined) return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
 }
 
-function buildLabContextFromInputs() {
-  return {
-    vitaminD: Number(document.getElementById("lab-vitamin-d").value) || null,
-    ldl: Number(document.getElementById("lab-ldl").value) || null,
-    hba1c: Number(document.getElementById("lab-hba1c").value) || null,
-    ferritin: Number(document.getElementById("lab-ferritin").value) || null
-  };
+function buildPersonalInfoFromInputs() {
+  const ageRaw = (document.getElementById("user-age").value || "").trim();
+  const ageValue = ageRaw === "" ? null : Number(ageRaw);
+  const age = Number.isFinite(ageValue) ? ageValue : null;
+  const gender = document.getElementById("user-gender").value || null;
+  const nationality = (document.getElementById("user-nationality").value || "").trim() || null;
+  return { age, gender, nationality };
 }
 
-function renderSummary(total) {
+function getGuidelineNotes(person) {
+  const nationality = normalizeText(person?.nationality);
+  if (isAmerican(nationality)) {
+    return {
+      title: "DGA 2025–2030 요약",
+      items: [
+        "가공식품과 첨가당, 정제 탄수화물 섭취를 크게 줄이고 실제 식품 중심으로 식단을 구성",
+        "단백질 1.2–1.6 g/kg/일 범위를 목표로 필요 열량에 맞춰 조정",
+        "2,000 kcal 기준: 유제품 3회, 채소 3회, 과일 2회, 통곡물 2–4회 섭취",
+        "14세 이상 나트륨 2,300mg/일 이하(어린이는 연령별 하향)",
+        "주류 섭취는 최소화"
+      ]
+    };
+  }
+  return null;
+}
+
+function renderGuidelines(person) {
+  const el = document.getElementById("guideline-notes");
+  if (!el) return;
+  const note = getGuidelineNotes(person);
+  if (!note) {
+    el.innerHTML = "";
+    return;
+  }
+  const items = note.items.map((item) => `<li>${item}</li>`).join("");
+  el.innerHTML = `<strong>${note.title}</strong><ul>${items}</ul>`;
+}
+
+function renderSummary(total, person) {
   const keys = Object.keys(total);
-  const html = keys.length
-    ? keys.map((key) => `<span class="chip ok">${NUTRIENT_RULES[key].label}: ${round(total[key])}${NUTRIENT_RULES[key].unit}</span>`).join("")
+  const nutrientHtml = keys.length
+    ? keys.map((key) => `<span class="chip ok">${NUTRIENT_META[key].label}: ${round(total[key])}${NUTRIENT_META[key].unit}</span>`).join("")
     : `<span class="chip warn">인식된 영양성분이 없습니다</span>`;
-  document.getElementById("summary").innerHTML = html;
+  const personalChips = [];
+  const reference = getReference(person);
+  if (person?.age !== null) personalChips.push(`<span class="chip ok">나이: ${person.age}세</span>`);
+  if (person?.gender) personalChips.push(`<span class="chip ok">성별: ${person.gender === "female" ? "여성" : person.gender === "male" ? "남성" : person.gender === "other" ? "기타" : "응답 안 함"}</span>`);
+  if (person?.nationality) personalChips.push(`<span class="chip ok">국적: ${person.nationality}</span>`);
+  personalChips.push(`<span class="chip ok">기준: ${reference === "KDRI 2020" ? "KDRI 2020" : "기본값"}</span>`);
+  const personalHtml = personalChips.length ? `<div class="summary-row">${personalChips.join("")}</div>` : "";
+  const nutrientRow = `<div class="summary-row">${nutrientHtml}</div>`;
+  document.getElementById("summary").innerHTML = `${personalHtml}${nutrientRow}`;
 }
 
 function renderDetectedProducts() {
@@ -232,11 +521,11 @@ function renderDetectedProducts() {
   document.getElementById("detected-products").textContent = text;
 }
 
-function renderResult(total, labs) {
-  const rows = Object.keys(NUTRIENT_RULES).map((key) => {
+function renderResult(total, labs, person) {
+  const rows = Object.keys(NUTRIENT_META).map((key) => {
     const intake = round(total[key] || 0);
-    const rule = NUTRIENT_RULES[key];
-    const evalResult = evaluateAction(key, intake, labs);
+    const rule = getRuleForPerson(key, person);
+    const evalResult = evaluateAction(key, intake, labs, person, rule);
     const ulText = rule.ul ? `${rule.ul}${rule.unit}` : "-";
     const statusText = evalResult.status === "ok" ? "적정" : evalResult.status === "warn" ? "주의" : "위험";
     return `<tr><td>${rule.label}</td><td>${intake}${rule.unit}</td><td>${rule.rda}${rule.unit}</td><td>${ulText}</td><td><span class="chip ${evalResult.status}">${statusText}</span></td><td>${evalResult.action}</td><td>${evalResult.reasons}</td></tr>`;
@@ -279,13 +568,19 @@ async function analyze() {
       ferritin: parsedLabs.ferritin ?? labs.ferritin
     };
   }
-  fillHealthInputs(parsedLabs);
   setStatus("health-status", "건강검진 수치 추출 완료");
 
-  const labs = buildLabContextFromInputs();
+  const labs = {
+    vitaminD: normalizeLabValue(parsedLabs.vitaminD),
+    ldl: normalizeLabValue(parsedLabs.ldl),
+    hba1c: normalizeLabValue(parsedLabs.hba1c),
+    ferritin: normalizeLabValue(parsedLabs.ferritin)
+  };
+  const person = buildPersonalInfoFromInputs();
   renderDetectedProducts();
-  renderSummary(total);
-  renderResult(total, labs);
+  renderSummary(total, person);
+  renderGuidelines(person);
+  renderResult(total, labs, person);
   document.getElementById("result-section").hidden = false;
 
   button.disabled = false;
