@@ -331,15 +331,34 @@ function parseHealthFromText(text) {
   const get = (patterns) => {
     for (const p of patterns) {
       const m = text.match(p);
-      if (m) return Number(m[1]);
+      if (m) return Number(String(m[1]).replace(/,/g, ""));
     }
     return null;
   };
   return {
     vitaminD: get([/vitamin\s*d[^\d]{0,10}(\d+(?:\.\d+)?)/i, /비타민\s*d[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
     ldl: get([/ldl[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    hdl: get([/hdl[^\d]{0,10}(\d+(?:\.\d+)?)/i, /좋은\s*콜레스테롤[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    triglycerides: get([/triglyceride[^\d]{0,10}(\d+(?:\.\d+)?)/i, /중성지방[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    totalChol: get([/total\s*cholesterol[^\d]{0,10}(\d+(?:\.\d+)?)/i, /총\s*콜레스테롤[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
     hba1c: get([/hba1c[^\d]{0,10}(\d+(?:\.\d+)?)/i, /당화혈색소[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
-    ferritin: get([/ferritin[^\d]{0,10}(\d+(?:\.\d+)?)/i, /페리틴[^\d]{0,10}(\d+(?:\.\d+)?)/i])
+    fastingGlucose: get([/fasting\s*glucose[^\d]{0,10}(\d+(?:\.\d+)?)/i, /공복혈당[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    ferritin: get([/ferritin[^\d]{0,10}(\d+(?:\.\d+)?)/i, /페리틴[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    rbc: get([/rbc[^\d]{0,10}(\d+(?:\.\d+)?)/i, /적혈구[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    hb: get([/hemoglobin[^\d]{0,10}(\d+(?:\.\d+)?)/i, /\bhb\b[^\d]{0,10}(\d+(?:\.\d+)?)/i, /혈색소[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    hct: get([/hct[^\d]{0,10}(\d+(?:\.\d+)?)/i, /hematocrit[^\d]{0,10}(\d+(?:\.\d+)?)/i, /헤마토크릿[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    ast: get([/ast[^\d]{0,10}(\d+(?:\.\d+)?)/i, /got[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    alt: get([/alt[^\d]{0,10}(\d+(?:\.\d+)?)/i, /gpt[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    ggt: get([/g-?gtp[^\d]{0,10}(\d+(?:\.\d+)?)/i, /γ-?gtp[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    bilirubin: get([/bilirubin[^\d]{0,10}(\d+(?:\.\d+)?)/i, /총\s*빌리루빈[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    creatinine: get([/creatinine[^\d]{0,10}(\d+(?:\.\d+)?)/i, /크레아티닌[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    egfr: get([/egfr[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    bun: get([/bun[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    sodium: get([/sodium[^\d]{0,10}(\d+(?:\.\d+)?)/i, /\bna\b[^\d]{0,10}(\d+(?:\.\d+)?)/i, /나트륨[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    potassium: get([/potassium[^\d]{0,10}(\d+(?:\.\d+)?)/i, /\bk\b[^\d]{0,10}(\d+(?:\.\d+)?)/i, /칼륨[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    chloride: get([/chloride[^\d]{0,10}(\d+(?:\.\d+)?)/i, /\bcl\b[^\d]{0,10}(\d+(?:\.\d+)?)/i, /염소[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    uricAcid: get([/uric\s*acid[^\d]{0,10}(\d+(?:\.\d+)?)/i, /요산[^\d]{0,10}(\d+(?:\.\d+)?)/i]),
+    tsh: get([/tsh[^\d]{0,10}(\d+(?:\.\d+)?)/i, /갑상선\s*tsh[^\d]{0,10}(\d+(?:\.\d+)?)/i])
   };
 }
 
@@ -461,6 +480,142 @@ function normalizeLabValue(value) {
   return Number.isFinite(num) ? num : null;
 }
 
+function buildLabStatus(labs, person) {
+  const gender = person?.gender;
+  const bySex = (male, female) => (gender === "female" ? female : gender === "male" ? male : null);
+  const rules = [
+    { key: "vitaminD", label: "비타민 D", min: 20, max: null, unit: "ng/mL" },
+    { key: "fastingGlucose", label: "공복혈당", min: 70, max: 99, unit: "mg/dL" },
+    { key: "hba1c", label: "HbA1c", min: null, max: 5.6, unit: "%" },
+    { key: "triglycerides", label: "중성지방", min: null, max: 150, unit: "mg/dL" },
+    { key: "hdl", label: "HDL", min: 40, max: null, unit: "mg/dL" },
+    { key: "ldl", label: "LDL", min: null, max: 100, unit: "mg/dL" },
+    { key: "totalChol", label: "총 콜레스테롤", min: null, max: 200, unit: "mg/dL" },
+    { key: "ast", label: "AST", min: 0, max: 40, unit: "IU/L" },
+    { key: "alt", label: "ALT", min: 0, max: 40, unit: "IU/L" },
+    { key: "ggt", label: "γ-GTP", min: bySex(10, 6), max: bySex(70, 40), unit: "IU/L" },
+    { key: "bilirubin", label: "총 빌리루빈", min: 0.2, max: 1.2, unit: "mg/dL" },
+    { key: "creatinine", label: "크레아티닌", min: bySex(0.7, 0.6), max: bySex(1.3, 1.1), unit: "mg/dL" },
+    { key: "egfr", label: "eGFR", min: 90, max: null, unit: "" },
+    { key: "bun", label: "BUN", min: 8, max: 23, unit: "mg/dL" },
+    { key: "sodium", label: "나트륨", min: 135, max: 145, unit: "mEq/L" },
+    { key: "potassium", label: "칼륨", min: 3.5, max: 5.0, unit: "mEq/L" },
+    { key: "chloride", label: "염소", min: 98, max: 106, unit: "mEq/L" },
+    { key: "uricAcid", label: "요산", min: bySex(3.5, 2.6), max: bySex(7.2, 6.0), unit: "mg/dL" },
+    { key: "tsh", label: "TSH", min: 0.4, max: 4.0, unit: "μIU/mL" }
+  ];
+
+  const anemiaRules = [
+    { key: "rbc", label: "적혈구", min: bySex(4.5, 4.0), max: bySex(5.9, 5.2), unit: "×10⁶/μL" },
+    { key: "hb", label: "혈색소", min: bySex(13, 12), max: bySex(17, 16), unit: "g/dL" },
+    { key: "hct", label: "헤마토크릿", min: bySex(40, 36), max: bySex(52, 48), unit: "%" }
+  ];
+
+  const results = [];
+  [...rules, ...anemiaRules].forEach((rule) => {
+    const value = normalizeLabValue(labs[rule.key]);
+    if (value === null) return;
+    if (rule.min === null && rule.max === null) return;
+    let status = "ok";
+    if (rule.min !== null && value < rule.min) status = "low";
+    if (rule.max !== null && value > rule.max) status = "high";
+    results.push({ ...rule, value, status });
+  });
+  return results;
+}
+
+function buildHealthRecommendations(labs, person) {
+  const gender = person?.gender;
+  const bySex = (male, female) => (gender === "female" ? female : gender === "male" ? male : null);
+  const recos = [];
+  const notes = [];
+  const anemia = ["rbc", "hb", "hct"].some((key) => {
+    const value = normalizeLabValue(labs[key]);
+    if (value === null) return false;
+    if (bySex(0, 0) === null) return false;
+    if (key === "rbc") return value < bySex(4.5, 4.0);
+    if (key === "hb") return value < bySex(13, 12);
+    if (key === "hct") return value < bySex(40, 36);
+    return false;
+  });
+  if (anemia) recos.push("철분, 비타민 B12, 엽산 보강 고려 (빈혈 관련 지표 낮음)");
+
+  const vitaminD = normalizeLabValue(labs.vitaminD);
+  if (vitaminD !== null && vitaminD < 20) recos.push("비타민 D3 보강 고려 (비타민 D 부족)");
+
+  const fasting = normalizeLabValue(labs.fastingGlucose);
+  if (fasting !== null && fasting >= 100 && fasting <= 125) {
+    recos.push("마그네슘, 알파리포산, 크롬 보강 고려 (공복혈당 경계)");
+    notes.push("공복혈당은 생활습관 교정이 1순위이며 보충제는 보조 수단입니다.");
+  } else if (fasting !== null && fasting >= 126) {
+    notes.push("공복혈당 126 이상은 진료 기준에 해당할 수 있어 전문 상담이 필요합니다.");
+  }
+
+  const tg = normalizeLabValue(labs.triglycerides);
+  const hdl = normalizeLabValue(labs.hdl);
+  if ((tg !== null && tg >= 150) || (hdl !== null && hdl < 40)) {
+    recos.push("오메가3(EPA/DHA) 보강 고려 (지질 수치 개선 목적)");
+    notes.push("나이아신은 의사 상담 후 고려하세요.");
+  }
+
+  const uric = normalizeLabValue(labs.uricAcid);
+  const uricMax = bySex(7.2, 6.0);
+  if (uric !== null && uricMax !== null && uric > uricMax) recos.push("비타민 C, 수분 섭취 증가 고려 (요산 경계 상승)");
+
+  const tsh = normalizeLabValue(labs.tsh);
+  if (tsh !== null && tsh > 4.0) {
+    recos.push("셀레늄 보강은 의사 상담 후 고려 (TSH 상승)");
+    notes.push("요오드 과다/결핍 여부 확인이 필요할 수 있습니다.");
+  }
+
+  const ast = normalizeLabValue(labs.ast);
+  const alt = normalizeLabValue(labs.alt);
+  if ((ast !== null && ast > 40) || (alt !== null && alt > 40)) {
+    recos.push("밀크시슬(실리마린), 비타민 E 보조적 고려 (간수치 경계 상승)");
+    notes.push("간수치 상승은 원인 파악이 우선입니다.");
+  }
+
+  const potassium = normalizeLabValue(labs.potassium);
+  if (potassium !== null && potassium < 3.5) recos.push("마그네슘/칼륨 섭취 개선 고려 (칼륨 낮음)");
+
+  const sodium = normalizeLabValue(labs.sodium);
+  if (sodium !== null && sodium > 145) notes.push("나트륨 높음은 보충제보다 식이 조절이 우선입니다.");
+
+  return { recos, notes };
+}
+
+function renderHealthInsights(labs, person) {
+  const summaryEl = document.getElementById("health-summary");
+  const recoEl = document.getElementById("health-recos");
+  if (!summaryEl || !recoEl) return;
+
+  const statusList = buildLabStatus(labs, person);
+  if (!statusList.length) {
+    summaryEl.innerHTML = "";
+    recoEl.innerHTML = "";
+    return;
+  }
+
+  const chips = statusList.map((item) => {
+    const level = item.status === "ok" ? "" : item.status === "low" ? "warn" : "danger";
+    const range = [
+      item.min !== null ? item.min : "-",
+      item.max !== null ? item.max : "-"
+    ].join("~");
+    return `<span class="health-chip ${level}">${item.label}: ${item.value}${item.unit} (${range})</span>`;
+  });
+  summaryEl.innerHTML = `<strong>건강검진 요약</strong><div class="summary-row">${chips.join("")}</div>`;
+
+  const { recos, notes } = buildHealthRecommendations(labs, person);
+  if (!recos.length && !notes.length) {
+    recoEl.innerHTML = "";
+    return;
+  }
+  const recoList = recos.length ? `<ul>${recos.map((r) => `<li>${r}</li>`).join("")}</ul>` : "";
+  const noteList = notes.length ? `<ul>${notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : "";
+  recoEl.innerHTML = `<strong>건강검진 기반 보강 참고</strong>${recoList}${noteList}`;
+}
+
 function buildPersonalInfoFromInputs() {
   const ageRaw = (document.getElementById("user-age").value || "").trim();
   const ageValue = ageRaw === "" ? null : Number(ageRaw);
@@ -533,10 +688,32 @@ function renderResult(total, labs, person) {
   document.getElementById("result-body").innerHTML = rows.join("");
 }
 
+function setAnalyzeUiState(state) {
+  const analyzeBtn = document.getElementById("analyze-btn");
+  const reanalyzeBtn = document.getElementById("reanalyze-btn");
+  if (state === "loading") {
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "분석 중...";
+    reanalyzeBtn.disabled = true;
+    reanalyzeBtn.textContent = "분석 중...";
+  } else if (state === "done") {
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "분석 완료";
+    analyzeBtn.hidden = true;
+    reanalyzeBtn.disabled = false;
+    reanalyzeBtn.textContent = "다시 분석하기";
+    reanalyzeBtn.hidden = false;
+  } else {
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = "분석하기";
+    analyzeBtn.hidden = false;
+    reanalyzeBtn.disabled = false;
+    reanalyzeBtn.textContent = "다시 분석하기";
+  }
+}
+
 async function analyze() {
-  const button = document.getElementById("analyze-btn");
-  button.disabled = true;
-  button.textContent = "분석 중...";
+  setAnalyzeUiState("loading");
   state.detectedProducts = [];
 
   const nameInput = document.getElementById("supplement-names").value;
@@ -557,34 +734,74 @@ async function analyze() {
   setStatus("supplement-status", "영양제 분석 완료");
 
   setStatus("health-status", "건강검진 결과 OCR 분석 중...");
-  let parsedLabs = { vitaminD: null, ldl: null, hba1c: null, ferritin: null };
+  let parsedLabs = {
+    vitaminD: null,
+    ldl: null,
+    hdl: null,
+    triglycerides: null,
+    totalChol: null,
+    hba1c: null,
+    fastingGlucose: null,
+    ferritin: null,
+    rbc: null,
+    hb: null,
+    hct: null,
+    ast: null,
+    alt: null,
+    ggt: null,
+    bilirubin: null,
+    creatinine: null,
+    egfr: null,
+    bun: null,
+    sodium: null,
+    potassium: null,
+    chloride: null,
+    uricAcid: null,
+    tsh: null
+  };
   for (const file of state.healthFiles) {
     const text = await recognizeImageText(file);
     const labs = parseHealthFromText(`${file.name}\n${text}`);
     parsedLabs = {
       vitaminD: parsedLabs.vitaminD ?? labs.vitaminD,
       ldl: parsedLabs.ldl ?? labs.ldl,
+      hdl: parsedLabs.hdl ?? labs.hdl,
+      triglycerides: parsedLabs.triglycerides ?? labs.triglycerides,
+      totalChol: parsedLabs.totalChol ?? labs.totalChol,
       hba1c: parsedLabs.hba1c ?? labs.hba1c,
-      ferritin: parsedLabs.ferritin ?? labs.ferritin
+      fastingGlucose: parsedLabs.fastingGlucose ?? labs.fastingGlucose,
+      ferritin: parsedLabs.ferritin ?? labs.ferritin,
+      rbc: parsedLabs.rbc ?? labs.rbc,
+      hb: parsedLabs.hb ?? labs.hb,
+      hct: parsedLabs.hct ?? labs.hct,
+      ast: parsedLabs.ast ?? labs.ast,
+      alt: parsedLabs.alt ?? labs.alt,
+      ggt: parsedLabs.ggt ?? labs.ggt,
+      bilirubin: parsedLabs.bilirubin ?? labs.bilirubin,
+      creatinine: parsedLabs.creatinine ?? labs.creatinine,
+      egfr: parsedLabs.egfr ?? labs.egfr,
+      bun: parsedLabs.bun ?? labs.bun,
+      sodium: parsedLabs.sodium ?? labs.sodium,
+      potassium: parsedLabs.potassium ?? labs.potassium,
+      chloride: parsedLabs.chloride ?? labs.chloride,
+      uricAcid: parsedLabs.uricAcid ?? labs.uricAcid,
+      tsh: parsedLabs.tsh ?? labs.tsh
     };
   }
   setStatus("health-status", "건강검진 수치 추출 완료");
 
-  const labs = {
-    vitaminD: normalizeLabValue(parsedLabs.vitaminD),
-    ldl: normalizeLabValue(parsedLabs.ldl),
-    hba1c: normalizeLabValue(parsedLabs.hba1c),
-    ferritin: normalizeLabValue(parsedLabs.ferritin)
-  };
+  const labs = Object.fromEntries(
+    Object.entries(parsedLabs).map(([key, value]) => [key, normalizeLabValue(value)])
+  );
   const person = buildPersonalInfoFromInputs();
   renderDetectedProducts();
   renderSummary(total, person);
   renderGuidelines(person);
+  renderHealthInsights(labs, person);
   renderResult(total, labs, person);
   document.getElementById("result-section").hidden = false;
 
-  button.disabled = false;
-  button.textContent = "분석하기";
+  setAnalyzeUiState("done");
 }
 
 function init() {
@@ -593,6 +810,7 @@ function init() {
   bindDropZone("supplement-paste-zone", "supplementFiles", "supplement-preview");
   bindDropZone("health-paste-zone", "healthFiles", "health-preview");
   document.getElementById("analyze-btn").addEventListener("click", analyze);
+  document.getElementById("reanalyze-btn").addEventListener("click", analyze);
 }
 
 init();
