@@ -483,6 +483,32 @@ function normalizeLabValue(value) {
 function buildLabStatus(labs, person) {
   const gender = person?.gender;
   const bySex = (male, female) => (gender === "female" ? female : gender === "male" ? male : null);
+  const descriptions = {
+    wbc: "면역 상태",
+    rbc: "산소 운반",
+    hb: "빈혈 여부",
+    hct: "혈액 농도",
+    platelet: "출혈·응고",
+    ast: "간 기능(손상 여부)",
+    alt: "간 기능(손상 여부)",
+    ggt: "간/담도 기능",
+    bilirubin: "담즙 대사",
+    creatinine: "신장 여과 기능",
+    egfr: "신장 여과 기능",
+    bun: "신장 기능/단백질 대사",
+    fastingGlucose: "혈당 상태",
+    hba1c: "최근 2~3개월 평균 혈당",
+    totalChol: "지질 상태",
+    ldl: "혈관 건강 지표",
+    hdl: "보호성 지질 지표",
+    triglycerides: "지질 상태",
+    sodium: "체액 균형",
+    potassium: "근육·심장 기능",
+    chloride: "산염기/체액 균형",
+    uricAcid: "통풍/대사 지표",
+    tsh: "갑상선 기능",
+    vitaminD: "뼈·면역 건강"
+  };
   const rules = [
     { key: "vitaminD", label: "비타민 D", min: 20, max: null, unit: "ng/mL" },
     { key: "fastingGlucose", label: "공복혈당", min: 70, max: 99, unit: "mg/dL" },
@@ -519,7 +545,7 @@ function buildLabStatus(labs, person) {
     let status = "ok";
     if (rule.min !== null && value < rule.min) status = "low";
     if (rule.max !== null && value > rule.max) status = "high";
-    results.push({ ...rule, value, status });
+    results.push({ ...rule, value, status, desc: descriptions[rule.key] || "" });
   });
   return results;
 }
@@ -602,9 +628,17 @@ function renderHealthInsights(labs, person) {
       item.min !== null ? item.min : "-",
       item.max !== null ? item.max : "-"
     ].join("~");
-    return `<span class="health-chip ${level}">${item.label}: ${item.value}${item.unit} (${range})</span>`;
+    const title = item.desc ? `${item.desc} | 정상범위: ${range}${item.unit ? ` ${item.unit}` : ""}` : `정상범위: ${range}${item.unit ? ` ${item.unit}` : ""}`;
+    return `<span class="health-chip ${level}" title="${title}">${item.label}: ${item.value}${item.unit} (${range})</span>`;
   });
-  summaryEl.innerHTML = `<strong>건강검진 요약</strong><div class="summary-row">${chips.join("")}</div>`;
+  const legend = `
+    <div class="health-legend">
+      <span class="legend-item"><span class="legend-dot ok"></span>정상</span>
+      <span class="legend-item"><span class="legend-dot warn"></span>낮음</span>
+      <span class="legend-item"><span class="legend-dot danger"></span>높음</span>
+    </div>
+  `;
+  summaryEl.innerHTML = `<strong>건강검진 요약</strong><div class="summary-row">${chips.join("")}</div>${legend}`;
 
   const { recos, notes } = buildHealthRecommendations(labs, person);
   if (!recos.length && !notes.length) {
