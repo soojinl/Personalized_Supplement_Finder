@@ -268,7 +268,6 @@ const KOREA_NUTRI_API = {
 };
 
 let dsldNameMap = new Map();
-let dsldKeyList = [];
 let dsldLoaded = false;
 
 function normalizeNameKey(value) {
@@ -286,14 +285,12 @@ async function loadDsldIndex() {
     if (!res.ok) return;
     const data = await res.json();
     dsldNameMap = new Map();
-    dsldKeyList = [];
     data.forEach((item) => {
       if (!item?.name || !item?.nutrients) return;
       const key = item.name_key || normalizeNameKey(item.name);
       if (!key) return;
       if (!dsldNameMap.has(key)) {
         dsldNameMap.set(key, item);
-        dsldKeyList.push([key, item]);
       }
     });
     dsldLoaded = true;
@@ -370,9 +367,6 @@ function parseNamedProducts(rawText) {
     if (dsldLoaded) {
       const key = normalizeNameKey(name);
       let product = dsldNameMap.get(key);
-      if (!product) {
-        product = dsldKeyList.find(([k]) => key.includes(k) || k.includes(key))?.[1];
-      }
       if (product) {
         matchedProducts.push(product.name);
         Object.entries(product.nutrients).forEach(([k, info]) => {
@@ -417,6 +411,31 @@ function extractNutrientsFromApiItem(item) {
   return nutrients;
 }
 
+function isLikelyNameMatch(query, item) {
+  const candidates = [
+    item.foodNm,
+    item.foodname,
+    item.prdlstNm,
+    item.prdlstname,
+    item.prductNm,
+    item.productName,
+    item.prdtNm
+  ].filter(Boolean);
+  if (!candidates.length) return false;
+  const q = normalizeNameKey(query);
+  if (!q) return false;
+  const qTokens = new Set(q.split(" ").filter(Boolean));
+  return candidates.some((cand) => {
+    const c = normalizeNameKey(cand);
+    if (!c) return false;
+    if (c === q) return true;
+    const cTokens = new Set(c.split(" ").filter(Boolean));
+    const overlap = [...qTokens].filter((t) => cTokens.has(t)).length;
+    const ratio = overlap / Math.max(1, qTokens.size);
+    return ratio >= 0.7;
+  });
+}
+
 async function fetchKoreaNutriByName(name) {
   const params = new URLSearchParams();
   params.set("serviceKey", KOREA_NUTRI_API.serviceKey);
@@ -424,7 +443,6 @@ async function fetchKoreaNutriByName(name) {
   params.set("pageNo", String(KOREA_NUTRI_API.pageNo));
   params.set("numOfRows", String(KOREA_NUTRI_API.numOfRows));
   params.set("foodNm", name);
-  params.set("bsshNm", name);
   const url = `${KOREA_NUTRI_API.baseUrl}?${params.toString()}`;
   const res = await fetch(url);
   if (!res.ok) return [];
@@ -457,7 +475,8 @@ async function enrichFromKoreaApi(names, total, matchedProducts) {
     try {
       const items = await fetchKoreaNutriByName(name);
       if (!items.length) continue;
-      const item = items[0];
+      const item = items.find((candidate) => isLikelyNameMatch(name, candidate));
+      if (!item) continue;
       const nutrients = extractNutrientsFromApiItem(item);
       if (Object.keys(nutrients).length === 0) continue;
       matchedProducts.push(item.foodNm || item.foodname || name);
