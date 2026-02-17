@@ -259,6 +259,41 @@ const state = {
   detectedProducts: []
 };
 
+let dsldNameMap = new Map();
+let dsldKeyList = [];
+let dsldLoaded = false;
+
+function normalizeNameKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function loadDsldIndex() {
+  if (dsldLoaded) return;
+  try {
+    const res = await fetch("data/dsld_nutrients.json");
+    if (!res.ok) return;
+    const data = await res.json();
+    dsldNameMap = new Map();
+    dsldKeyList = [];
+    data.forEach((item) => {
+      if (!item?.name || !item?.nutrients) return;
+      const key = item.name_key || normalizeNameKey(item.name);
+      if (!key) return;
+      if (!dsldNameMap.has(key)) {
+        dsldNameMap.set(key, item);
+        dsldKeyList.push([key, item]);
+      }
+    });
+    dsldLoaded = true;
+  } catch (e) {
+    // fail silently if index is not available
+  }
+}
+
 function round(value) {
   return Math.round(value * 10) / 10;
 }
@@ -323,6 +358,21 @@ function parseNamedProducts(rawText) {
       matchedProducts.push(product.name);
       Object.entries(product.nutrients).forEach(([k, info]) => addNutrient(total, k, info.amount, info.unit));
     });
+
+    if (dsldLoaded) {
+      const key = normalizeNameKey(name);
+      let product = dsldNameMap.get(key);
+      if (!product) {
+        product = dsldKeyList.find(([k]) => key.includes(k) || k.includes(key))?.[1];
+      }
+      if (product) {
+        matchedProducts.push(product.name);
+        Object.entries(product.nutrients).forEach(([k, info]) => {
+          if (!info || info.amount === null || info.amount === undefined) return;
+          addNutrient(total, k, info.amount, info.unit);
+        });
+      }
+    }
   });
   return { total, matchedProducts };
 }
@@ -839,6 +889,7 @@ async function analyze() {
 }
 
 function init() {
+  loadDsldIndex();
   document.getElementById("supplement-image-input").addEventListener("change", (e) => addFiles("supplementFiles", e.target.files, "supplement-preview"));
   document.getElementById("health-image-input").addEventListener("change", (e) => addFiles("healthFiles", e.target.files, "health-preview"));
   bindDropZone("supplement-paste-zone", "supplementFiles", "supplement-preview");
