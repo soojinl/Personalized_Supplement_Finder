@@ -3,14 +3,22 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      "functions/**",
       "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
       {
+        "source": "/api/korea-nutri",
+        "function": "koreaNutriProxy"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+  },
+  "functions": {
+    "source": "functions"
   }
 }
