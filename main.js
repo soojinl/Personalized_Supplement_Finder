@@ -355,12 +355,16 @@ function parseNamedProducts(rawText) {
     .filter(Boolean);
   const total = {};
   const matchedProducts = [];
+  const matchMeta = {};
   names.forEach((name) => {
+    matchMeta[name] = { sources: new Set(), matchedName: null };
     const lower = name.toLowerCase();
     PRODUCT_DB.forEach((product) => {
       const matched = lower.includes(product.name.toLowerCase()) || product.aliases.some((a) => lower.includes(a.toLowerCase()));
       if (!matched) return;
       matchedProducts.push(product.name);
+      matchMeta[name].sources.add("sample_db");
+      matchMeta[name].matchedName = product.name;
       Object.entries(product.nutrients).forEach(([k, info]) => addNutrient(total, k, info.amount, info.unit));
     });
 
@@ -369,6 +373,8 @@ function parseNamedProducts(rawText) {
       let product = dsldNameMap.get(key);
       if (product) {
         matchedProducts.push(product.name);
+        matchMeta[name].sources.add("dsld");
+        matchMeta[name].matchedName = product.name;
         Object.entries(product.nutrients).forEach(([k, info]) => {
           if (!info || info.amount === null || info.amount === undefined) return;
           addNutrient(total, k, info.amount, info.unit);
@@ -376,7 +382,7 @@ function parseNamedProducts(rawText) {
       }
     }
   });
-  return { total, matchedProducts };
+  return { total, matchedProducts, matchMeta };
 }
 
 function parseNumber(value) {
@@ -469,7 +475,7 @@ async function fetchKoreaNutriByName(name) {
   return Array.isArray(items) ? items : [items];
 }
 
-async function enrichFromKoreaApi(names, total, matchedProducts) {
+async function enrichFromKoreaApi(names, total, matchedProducts, matchMeta) {
   const unique = [...new Set(names)].filter(Boolean);
   for (const name of unique) {
     try {
@@ -480,6 +486,10 @@ async function enrichFromKoreaApi(names, total, matchedProducts) {
       const nutrients = extractNutrientsFromApiItem(item);
       if (Object.keys(nutrients).length === 0) continue;
       matchedProducts.push(item.foodNm || item.foodname || name);
+      if (matchMeta?.[name]) {
+        matchMeta[name].sources.add("korea_api");
+        matchMeta[name].matchedName = item.foodNm || item.foodname || name;
+      }
       Object.entries(nutrients).forEach(([k, info]) => addNutrient(total, k, info.amount, info.unit));
     } catch (e) {
       // ignore API failures
@@ -864,18 +874,28 @@ function renderSummary(total, person) {
   document.getElementById("summary").innerHTML = `${personalHtml}${nutrientRow}`;
 }
 
-function renderDetectedProducts(requestedNames = []) {
+function renderDetectedProducts(requestedNames = [], matchMeta = {}) {
   const unique = [...new Set(state.detectedProducts)];
   const text = unique.length ? `인식된 영양제: ${unique.join(", ")}` : "인식된 영양제: 없음";
   document.getElementById("detected-products").textContent = text;
 
   const unmatched = requestedNames.filter((name) => {
-    const key = normalizeNameKey(name);
-    if (!key) return false;
-    return !unique.some((matched) => normalizeNameKey(matched) === key);
+    const meta = matchMeta[name];
+    return !meta || meta.sources.size === 0;
   });
-  const unmatchedText = unmatched.length ? `미매칭: ${unmatched.join(", ")}` : "";
-  document.getElementById("unmatched-products").textContent = unmatchedText;
+  if (!unmatched.length) {
+    document.getElementById("unmatched-products").textContent = "";
+    return;
+  }
+  const reasons = unmatched.map((name) => {
+    const meta = matchMeta[name] || { sources: new Set() };
+    const reasonParts = [];
+    if (dsldLoaded) reasonParts.push("DSLD 정확일치 없음");
+    reasonParts.push("API 유사도 매칭 실패");
+    reasonParts.push("샘플 DB 불일치");
+    return `- ${name}: ${reasonParts.join(", ")}`;
+  });
+  document.getElementById("unmatched-products").textContent = `미매칭(원인):\n${reasons.join("\n")}`;
 }
 
 function renderResult(total, labs, person) {
@@ -927,7 +947,7 @@ async function analyze() {
     .split(/\n|,/)
     .map((v) => v.trim())
     .filter(Boolean);
-  await enrichFromKoreaApi(rawNames, total, state.detectedProducts);
+  await enrichFromKoreaApi(rawNames, total, state.detectedProducts, byName.matchMeta);
 
   setStatus("supplement-status", "영양제 이미지 OCR 분석 중...");
   for (const file of state.supplementFiles) {
@@ -1002,7 +1022,7 @@ async function analyze() {
     Object.entries(parsedLabs).map(([key, value]) => [key, normalizeLabValue(value)])
   );
   const person = buildPersonalInfoFromInputs();
-  renderDetectedProducts(rawNames);
+  renderDetectedProducts(rawNames, byName.matchMeta);
   renderSummary(total, person);
   renderGuidelines(person);
   renderHealthInsights(labs, person);

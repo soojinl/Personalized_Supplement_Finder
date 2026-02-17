@@ -219,6 +219,11 @@ button {
   font-family: "GmarketSansMedium", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
 }
 
+#unmatched-products {
+  white-space: pre-line;
+  color: var(--warn);
+}
+
 .health-legend {
   display: flex;
   flex-wrap: wrap;
