@@ -864,10 +864,18 @@ function renderSummary(total, person) {
   document.getElementById("summary").innerHTML = `${personalHtml}${nutrientRow}`;
 }
 
-function renderDetectedProducts() {
+function renderDetectedProducts(requestedNames = []) {
   const unique = [...new Set(state.detectedProducts)];
   const text = unique.length ? `인식된 영양제: ${unique.join(", ")}` : "인식된 영양제: 없음";
   document.getElementById("detected-products").textContent = text;
+
+  const unmatched = requestedNames.filter((name) => {
+    const key = normalizeNameKey(name);
+    if (!key) return false;
+    return !unique.some((matched) => normalizeNameKey(matched) === key);
+  });
+  const unmatchedText = unmatched.length ? `미매칭: ${unmatched.join(", ")}` : "";
+  document.getElementById("unmatched-products").textContent = unmatchedText;
 }
 
 function renderResult(total, labs, person) {
@@ -994,7 +1002,7 @@ async function analyze() {
     Object.entries(parsedLabs).map(([key, value]) => [key, normalizeLabValue(value)])
   );
   const person = buildPersonalInfoFromInputs();
-  renderDetectedProducts();
+  renderDetectedProducts(rawNames);
   renderSummary(total, person);
   renderGuidelines(person);
   renderHealthInsights(labs, person);
