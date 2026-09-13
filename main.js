@@ -261,7 +261,7 @@ const state = {
 
 const KOREA_NUTRI_API = {
   baseUrl: "https://api.data.go.kr/openapi/tn_pubr_public_nutri_info_api",
-  serviceKey: "4aQljg1aUQMDzPovBAVX0hworxW%2FALiyyXdJfG1JOswL%2B8Wq6x7nhjSSEDLgDB7SrgnYYWrf%2BBqbGtg7dFKooQ%3D%3D",
+  serviceKey: "-",
   type: "json",
   pageNo: 1,
   numOfRows: 50
